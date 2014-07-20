@@ -1,0 +1,93 @@
+---
+title: "PA_1"
+output:
+  html_document:
+    keep_md: yes
+---
+
+##Loading and preprocessing the data
+The data is tidy and does not need to be processed.
+
+##What is mean total number of steps taken per day?
+```{r}
+setwd("C:/RData")
+data <- read.csv("activity.csv") 
+stepsPerDay<-aggregate(steps~date,data,sum) #This aggregates the steps by total per day
+
+hist(stepsPerDay$steps,main="Steps Per Day",xlab="Steps")
+meanSteps<-mean(stepsPerDay$steps)
+medianSteps<-median(stepsPerDay$steps)
+
+```
+The mean is `r meanSteps`.
+The meadian is `r medianSteps`.
+
+##What is the average daily activity pattern?
+```{r} 
+averageData<-aggregate(steps~interval,data,mean)
+plot(averageData$interval,averageData$steps,type="l",xlab="Interval", ylab="Steps",main="Steps Over Intervals")
+y<-max(averageData$steps)
+averageMax<-averageData[averageData$steps==y,"interval"]
+```
+
+
+The 5 minute interval with the maximum average number of steps is 830- `r averageMax`.
+
+##Imputing missing values
+```{r}
+numberOfMissing<-sum(is.na(data$steps)) #Compute the total number of missing values
+
+head(data)
+
+#I subset the average steps per day by all the rows in the dataset that are NA by date under the column steps
+data[is.na(data$steps),"steps"]<-stepsPerDay[data[is.na(data$steps),"date"],"steps"]
+newdata<-data
+
+head(newdata) #This is the dataset without the missing values
+
+histogramOfSteps<-hist(newdata$steps,xlab="Steps",main="Steps Over Intervals")
+averageSteps<-mean(stepsPerDay$steps)
+medianSteps2<-median(stepsPerDay$steps)
+
+numberOfMissing2<-sum(is.na(newdata$steps))
+```
+The number of missing values is `r numberOfMissing`.
+
+I replaced the missing values with the mean steps per day. 
+
+The number of missing values is now `r numberOfMissing2`.
+
+Feedback about how to reduce the number of missing values would be nice. 
+
+The mean number of steps is `r averageSteps`.
+The median number of steps is `r medianSteps2`.
+
+Removing the missing values from the dataset did not impact the mean and median. The mean and median stayed the same.
+
+##Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+
+daysOfWeek<-weekdays(as.Date(data$date)) ##Convert data variable into weekdays
+dw<-function(x=c()){ ##Create a function that will create the factor variable
+  r<-c()
+  for (i in x) {
+    if(i=="Saturday" || i=="Sunday"){
+      r<-c("weekend",r)
+    }
+    else{
+      r<-c("weekday",r)
+    }
+  }
+ r<-as.factor(r) 
+}
+
+weekDay<-dw(daysOfWeek) #This is the factor variable
+
+df<-data.frame(averageData,weekDay) #This is merged dataset of average steps per interval data and weekday 
+str(df)
+
+library("lattice")
+
+xyplot(steps~interval| weekDay, data=df,layout = c(1, 2),type="l")
+
